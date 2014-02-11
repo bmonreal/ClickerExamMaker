@@ -21,9 +21,21 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 
 from PIL import Image
 
+import Tkinter, tkFileDialog
 from os import listdir, remove
 from os.path import isfile, join
-mypath = sys.argv[1]
+
+if len(sys.argv[1]) > 1:
+    mypath = sys.argv[1]
+rosterfilename = mypath+"moodleroster.txt"
+
+### get user input via gui
+mypath = tkFileDialog.askdirectory(title="Please select the iClicker folder for this class.")+"/"
+examsdir = tkFileDialog.askdirectory(title="Please select a folder in which to save the exams")+"/"
+
+prefixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want prepended to every exam.  (Cancel if none.)")
+postfixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want post-pended to every exam. (Cancel if none.)")
+rosterfilename = tkFileDialog.askopenfilename(title="Please find the class roster in Moodle format.")
 
 # Key to grading:
 # Z = Malfunctioning question, inhibit from exam generation
@@ -33,7 +45,7 @@ mypath = sys.argv[1]
 # Step 1.   The "RemoteID.csv" file helps create a map from clickerIDs to emails
 # and the "moodleroster.txt" (exported from iGrader) maps from emails to names. #  Not the best system but we can handle it.  
 
-idfile = open(mypath+"SessionData/RemoteID.csv");
+idfile = open(mypath+"/SessionData/RemoteID.csv");
 idreader = csv.reader(idfile)
 students = {}
 studentids = {}
@@ -44,7 +56,7 @@ for row in idreader:
 idfile.close();
 
 emaildb = {}
-idfile = open(mypath+"moodleroster.txt");
+idfile = open(rosterfilename);
 idreader = csv.reader(idfile,delimiter='\t')
 idreader.next(); #skip first line
 for row in idreader:
@@ -64,7 +76,7 @@ emaildb['missing'] = "unregistered"
 
 qfiles = {}
 
-files = [ f for f in listdir(mypath+"SessionData/") if ( isfile(mypath+"SessionData/"+f) and "L14" in f and "csv" in f)]
+files = [ f for f in listdir(mypath+"SessionData/") if ( isfile(mypath+"SessionData/"+f) and "L" in f and "csv" in f)]
 # begin loop through list of files!   
 for f in files:
     print(f)
