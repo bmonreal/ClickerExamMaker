@@ -11,6 +11,7 @@
 import csv
 import sys
 import random
+import getopt
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
@@ -25,18 +26,54 @@ import Tkinter, tkFileDialog
 from os import listdir, remove
 from os.path import isfile, join
 
-if len(sys.argv[1]) > 1:
-    mypath = sys.argv[1]
-rosterfilename = mypath+"moodleroster.txt"
 
-### get user input via gui
-mypath = tkFileDialog.askdirectory(title="Please select the iClicker folder for this class.")+"/"
-examsdir = tkFileDialog.askdirectory(title="Please select a folder in which to save the exams")+"/"
+mypath=""
+examsdir=""
+prefixpdfname=""
+postfixpdfname=""
+rosterfilename=""
+nneeded = 4
+layout = [2,2] 
 
-prefixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want prepended to every exam.  (Cancel if none.)")
-postfixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want post-pended to every exam. (Cancel if none.)")
-rosterfilename = tkFileDialog.askopenfilename(title="Please find the class roster in Moodle format.")
+#########################################
+##### get user input ####################
+try:
+    # see if there's a command-line argument
+    opts, args = getopt.getopt(sys.argv,"c:o:f:l:n:",["class=","output=","prefix=","postfix="])
 
+
+except getopt.GetoptError:
+    print "Run parse_students with no arguments to get interactive prompts."
+    print "or run (all args required)"
+    print "parse_students -c <clicker class directory> -o <exam directory> -f <pdf file to prefix> -l <pdf file to postfix> -n <number of questions per student>"
+
+for opt, arg in opts:
+    # if it's a command-line invocation, parse arguments for input parameters and text-prompt for missing ones.
+    if opt in ("-c","--class"):
+        mypath = arg
+    elif opt in ("-o,--output"):
+        examsdir = arg
+    elif opt in ("-f,--prefix"):
+        prefixpdfname = arg
+    elif opt in ("-l","--postfix"):
+        postfixpdfname = arg
+    elif opt in ("-n"):
+        nneeded = int(arg)
+       
+    # if not, enter the GUI and set user input parameters there.
+print 'Entering interactive mode.'
+if mypath=="":
+    mypath = tkFileDialog.askdirectory(title="Please select the iClicker folder for this class.")+"/"
+if examsdir=="":    
+    examsdir = tkFileDialog.askdirectory(title="Please select a folder in which to save the exams")+"/"
+if prefixpdfname=="":
+    prefixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want prepended to every exam.  (Cancel if none.)")
+if postfixpdfname=="":    
+    postfixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want post-pended to every exam. (Cancel if none.)")
+if rosterfilename=="":
+    rosterfilename = tkFileDialog.askopenfilename(title="Please find the class roster in Moodle format.")
+
+ 
 # Key to grading:
 # Z = Malfunctioning question, inhibit from exam generation
 # AZ, BZ, CZ, DZ, EZ = inhibit from exam use BUT maybe use for gradebook
@@ -164,7 +201,16 @@ for thisqkey in listofquestions:
 # Step 3.  Go through list of student and generate exams
 #
 
-commonpages = PdfFileReader(file("/Users/bmonreal/teaching/phys21w14/midterm_common.pdf", "rb"))
+try:
+    prefixpages = PdfFileReader(file(prefixpdfname, "rb"))
+except:
+    prefixpages = ""
+
+try: 
+    postfixpages = PdfFileReader(file(postfixpdfname, "rb"))
+except:
+    postfixpages = ""
+
 
 listofstudents = students.keys();
     
@@ -190,7 +236,6 @@ for individual in listofstudents:
     for question in thisquestionlist:
         if thisrecord[question] == False:
             wrongslist.append(question)
-        nneeded = 4
     # different behavior needed depending on number of mistakes. 
     if len(thisquestionlist) < nneeded : # mostly-absent student
         print "student ", individual, studentids[individual], " didn't see enough Q for exam"
@@ -245,10 +290,17 @@ for individual in listofstudents:
 ### Finally, use pyPDF to add the "common" pages to this file.  Need to reopen.
     individualpages = PdfFileReader(file(outputpdfname+"tmp", "rb"))
     output = PdfFileWriter()
+    if prefixpages != "":
+        for i in range(prefixpages.getNumPages()):
+            output.addPage(prefixpages.getPage(i))
+    
     for i in range(individualpages.getNumPages()):
         output.addPage(individualpages.getPage(i))
-    for i in range(commonpages.getNumPages()):
-        output.addPage(commonpages.getPage(i))
+
+    if postfixpages != ""    :
+        for i in range(postfixpages.getNumPages()):
+            output.addPage(postfixpages.getPage(i))
+
     outputStream = file(outputpdfname,"wb") 
     output.write(outputStream)
     outputStream.close()
