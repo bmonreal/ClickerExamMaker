@@ -13,6 +13,8 @@ import sys
 import random
 import getopt
 
+
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.units import inch
@@ -20,12 +22,41 @@ from reportlab.lib.utils import ImageReader
 
 from PyPDF2 import PdfFileWriter, PdfFileReader
 
-from PIL import Image
 
-import Tkinter, tkFileDialog
+
+import Tkinter, tkFileDialog, tkSimpleDialog
+from Tkinter import *
+from PIL import Image
 from os import listdir, remove
 from os.path import isfile, join
 
+class MyDialog(tkSimpleDialog.Dialog):
+
+    def body(self, master):
+
+        Label(master, text="Number of questions per student:").grid(row=0)
+        Label(master, text="Page layout? number of rows:").grid(row=1)
+        Label(master, text="Page layout? number of columns:").grid(row=2)
+        self.e1 = Entry(master)
+        self.e2 = Entry(master)
+        self.e3 = Entry(master)
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+
+        var1 = IntVar()
+        var2 = IntVar()
+#        self.cb1 = Checkbutton(master, text="Presenter display?",variable=var1)
+        self.cb1 = Checkbutton(master, text="This button doesn't work",variable=var1)
+        self.cb1.grid(row=4, columnspan=2, sticky=W)
+#        self.cb2 = Checkbutton(master, text="Show left side of screen?",variable=var2)
+        self.cb2 = Checkbutton(master, text="This button doesn't work either",variable=var2)
+        self.cb2.grid(row=5, columnspan=2, sticky=W)
+
+        return self.e1 # initial focus
+
+    def apply(self):
+        self.result = int(self.e1.get()),  int(self.e2.get()),  int(self.e3.get())
 
 mypath=""
 examsdir=""
@@ -34,12 +65,19 @@ postfixpdfname=""
 rosterfilename=""
 nneeded = 4
 layout = [2,2] 
+fullscreen = False
+cropleft = True
+
+root = Tk()
+root.update()
+
+
 
 #########################################
 ##### get user input ####################
 try:
     # see if there's a command-line argument
-    opts, args = getopt.getopt(sys.argv,"c:o:f:l:n:",["class=","output=","prefix=","postfix="])
+    opts, args = getopt.getopt(sys.argv,"c:o:f:l:n:ks",["class=","output=","prefix=","postfix=","fullscreen","cropleft"])
 
 
 except getopt.GetoptError:
@@ -59,21 +97,41 @@ for opt, arg in opts:
         postfixpdfname = arg
     elif opt in ("-n"):
         nneeded = int(arg)
-       
-    # if not, enter the GUI and set user input parameters there.
+    elif opt in ("-s"):
+        fullscreen = True
+    elif opt in ("-k"):
+        cropleft = True
+
+# if there were NO command line arguments, we have to prompt for the number and layout of the questions.          
+if len(opts) == 0 :
+    d = MyDialog(root)
+    userinput = d.result
+    nneeded = userinput[0]
+    layout = [userinput[1],userinput[2]]
+
+# FIXME: I don't know how to implement these radio buttons.  
+#    fullscreen = userinput[3];
+#    cropleft = userinput[4];
+fullscreen = True
+cropleft = False
+
+# All of the filenames are required; prompt for anything missing.
+# FIXME: would be better to tie "prefix" and "postfix" files to an option
+# so it's easier to skip them if you don't want them.
 print 'Entering interactive mode.'
 if mypath=="":
     mypath = tkFileDialog.askdirectory(title="Please select the iClicker folder for this class.")+"/"
 if examsdir=="":    
     examsdir = tkFileDialog.askdirectory(title="Please select a folder in which to save the exams")+"/"
-if prefixpdfname=="":
-    prefixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want prepended to every exam.  (Cancel if none.)")
-if postfixpdfname=="":    
-    postfixpdfname = tkFileDialog.askopenfilename(title="Please select any PDF file you want post-pended to every exam. (Cancel if none.)")
 if rosterfilename=="":
     rosterfilename = tkFileDialog.askopenfilename(title="Please find the class roster in Moodle format.")
+if prefixpdfname=="":
+    prefixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want prepended to every exam.  (Cancel if none.)")
+if postfixpdfname=="":    
+    postfixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want post-pended to every exam. (Cancel if none.)")
 
- 
+
+#################### 
 # Key to grading:
 # Z = Malfunctioning question, inhibit from exam generation
 # AZ, BZ, CZ, DZ, EZ = inhibit from exam use BUT maybe use for gradebook
@@ -191,7 +249,17 @@ for thisqkey in listofquestions:
     thisfile = qfiles[thisqkey]
     print "cropping",thisfile,thisqkey
     im = Image.open(thisfile)
-    im = im.crop([45,125,290,550])
+
+    # DECIDE ON THE CROPPING HERE                               
+    if (fullscreen and not cropleft): 
+         im = im.crop([1,1,1024,768])
+    elif (fullscreen and cropleft):
+         im = im.crop([1,1,512,768])
+    elif (not fullscreen and not cropleft):
+         im = im.crop([45,125,535,572])
+    elif (not fullscreen and cropleft):              
+         im = im.crop([45,125,290,550])
+
     # generate a new filename to save the crop
     newfilename = "Exams/"+thisqkey+"_crop.jpg";
     im.save(newfilename,"JPEG")
@@ -262,14 +330,49 @@ for individual in listofstudents:
     iquadrant = 0;
     imx=0;
     imy=0;
+    xwid=2.5*inch
+    ywid=5*inch
     for thisquestion in examset:
-        # decide where to put resulting image
-        if (iquadrant==0):
-            imy = 5.25*inch; 
-            imx = 1*inch;
-        elif (iquadrant==1):
-            imy = 5.25*inch; 
-            imx = 4.5*inch;
+        # decide where to put resulting image and how big to make it.  
+        # FIXME.  This is a terrible hack and can be improved.   
+        #FIXME.  Also need to implement the user-choice of grid.
+        if (fullscreen and not cropleft): 
+            xwid=4*inch
+            ywid=4*inch
+            if (iquadrant==0):
+                imy = 5.25*inch; 
+                imx = 1*inch;
+            elif (iquadrant==1):
+                imy = 5.25*inch; 
+                imx = 4.5*inch;
+        elif (fullscreen and cropleft):
+            xwid=2.5*inch
+            ywid=5*inch
+            if (iquadrant==0):
+                imy = 5.25*inch; 
+                imx = 1*inch;
+            elif (iquadrant==1):
+                imy = 5.25*inch; 
+                imx = 4.5*inch;
+        elif (not fullscreen and not cropleft):
+            xwid=4*inch
+            ywid=4*inch
+            if (iquadrant==0):
+                imy = 5.25*inch; 
+                imx = 1*inch;
+            elif (iquadrant==1):
+                imy = 5.25*inch; 
+                imx = 4.5*inch;
+        elif (not fullscreen and cropleft):              
+            xwid=2.5*inch
+            ywid=5*inch
+            if (iquadrant==0):
+                imy = 5.25*inch; 
+                imx = 1*inch;
+            elif (iquadrant==1):
+                imy = 5.25*inch; 
+                imx = 4.5*inch;
+
 
 
         # open and place image
@@ -277,8 +380,9 @@ for individual in listofstudents:
         screenshotfile = qfiles[thisquestion]
         print len(examset), thisquestion, screenshotfile
         im = ImageReader(screenshotfile)
-        c.drawImage(im,imx,imy,width=2.5*inch,height=5*inch)
+        c.drawImage(im,imx,imy,width=xwid,height=ywid)
         
+        #FIXME.   need to implement the user-choice of grid.
         iquadrant+=1
         if (iquadrant > 1):
             c.showPage()
