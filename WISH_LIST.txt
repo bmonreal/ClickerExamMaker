@@ -1,0 +1,26 @@
+Simple improvements needed to the code:
+
+1) Get the initial data-input GUI working.   User should be able to specify:
+number of questions
+rows per page
+columns per page
+whether to prompt for prefix PDF
+whether to prompt for postfix PDF
+
+1a) Clean up page/grid generation to implement arbitrary row/column choices.  
+1b) Add question numbering.
+
+2) Export a "grading spreadsheet" with the correct answers listed student-by-student. 
+(Should be in some format that works well with scantron software.   Watch out for edge cases, multi-answer questions, etc.)
+
+3) Auto-recognize dimensions of GIF and scale cropping to match.  
+
+4) Make a little image-selection-box GUI so user can perform the cropping operation with a mouse.
+
+5) Be more flexible about roster file format.
+
+Slightly harder improvements:
+
+6) Interface to question banks other than the image/screenshot files?   
+
+7) Some sort of preview function?   
