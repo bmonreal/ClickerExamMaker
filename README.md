@@ -20,9 +20,9 @@ The code will also append (both prepend and postpend) any additional PDF files y
 
 ## Getting started ##########################
 
-This is a script and needs to be run from the command line.   Navigate to the folder containing parse_students.py and type:
+This is a script and needs to be run from the command line.   Navigate to the folder containing generate_exams.py and type:
 
-./parse_students.py
+./generate_exams.py
 
 A series of windows will pop up asking you to identify four required things:
 * the number of questions you want printed per student.  
