@@ -34,9 +34,9 @@ class MyDialog(tkSimpleDialog.Dialog):
 
     def body(self, master):
 
-        Label(master, text="Number of questions per student:").grid(row=0)
-        Label(master, text="Page layout? number of rows:").grid(row=1)
-        Label(master, text="Page layout? number of columns:").grid(row=2)
+        Label(master, text="Number of questions per student:", default="4").grid(row=0)
+        Label(master, text="Page layout? (ignore this)").grid(row=1)
+        Label(master, text="Page layout? (ignore this):").grid(row=2)
         self.e1 = Entry(master)
         self.e2 = Entry(master)
         self.e3 = Entry(master)
