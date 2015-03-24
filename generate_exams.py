@@ -28,7 +28,7 @@ import Tkinter, tkFileDialog, tkSimpleDialog
 from Tkinter import *
 from PIL import Image
 from os import listdir, remove
-from os.path import isfile, join
+from os.path import isfile, join, getsize
 
 class MyDialog(tkSimpleDialog.Dialog):
 
@@ -66,7 +66,8 @@ rosterfilename=""
 nneeded = 4
 layout = [2,2] 
 fullscreen = False
-cropleft = True
+cropleft = False
+IgnoreSkippedQuestions = True
 
 root = Tk()
 root.update()
@@ -77,21 +78,24 @@ root.update()
 ##### get user input ####################
 try:
     # see if there's a command-line argument
-    opts, args = getopt.getopt(sys.argv,"c:o:f:l:n:ks",["class=","output=","prefix=","postfix=","fullscreen","cropleft"])
-
+    opts, args = getopt.getopt(sys.argv[1:],"c:o:f:l:n:ks",["class=","output=","prefix=","postfix=","fullscreen","cropleft"])
 
 except getopt.GetoptError:
     print "Run parse_students with no arguments to get interactive prompts."
     print "or run (all args required)"
     print "parse_students -c <clicker class directory> -o <exam directory> -f <pdf file to prefix> -l <pdf file to postfix> -n <number of questions per student>"
+    
+print opts
+print args
 
 for opt, arg in opts:
     # if it's a command-line invocation, parse arguments for input parameters and text-prompt for missing ones.
     if opt in ("-c","--class"):
+        print "entering opt loop"
         mypath = arg
-    elif opt in ("-o,--output"):
+    elif opt in ("-o","--output"):
         examsdir = arg
-    elif opt in ("-f,--prefix"):
+    elif opt in ("-f","--prefix"):
         prefixpdfname = arg
     elif opt in ("-l","--postfix"):
         postfixpdfname = arg
@@ -102,17 +106,27 @@ for opt, arg in opts:
     elif opt in ("-k"):
         cropleft = True
 
+mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/"
+examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys21w15/"
+rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/MoodleRoster.txt"
+#postfixpdfname = "/Users/bmonreal/teaching/phys21w14/final_exam.pdf"
+postfixpdfname = ""
+prefixpdfname=""
+print "hack line select "+mypath+" "+examsdir
+
+
+
 # if there were NO command line arguments, we have to prompt for the number and layout of the questions.          
-if len(opts) == 0 :
-    d = MyDialog(root)
-    userinput = d.result
-    nneeded = userinput[0]
-    layout = [userinput[1],userinput[2]]
+#if len(opts) == 0 :
+#    d = MyDialog(root)
+##    userinput = d.result
+#    nneeded = userinput[0]
+#    layout = [userinput[1],userinput[2]]
 
 # FIXME: I don't know how to implement these radio buttons.  
 #    fullscreen = userinput[3];
 #    cropleft = userinput[4];
-fullscreen = True
+fullscreen = False
 cropleft = False
 
 # All of the filenames are required; prompt for anything missing.
@@ -125,10 +139,10 @@ if examsdir=="":
     examsdir = tkFileDialog.askdirectory(title="Please select a folder in which to save the exams")+"/"
 if rosterfilename=="":
     rosterfilename = tkFileDialog.askopenfilename(title="Please find the class roster in Moodle format.")
-if prefixpdfname=="":
-    prefixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want prepended to every exam.  (Cancel if none.)")
-if postfixpdfname=="":    
-    postfixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want post-pended to every exam. (Cancel if none.)")
+#if prefixpdfname=="":
+#    prefixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want prepended to every exam.  (Cancel if none.)")
+#if postfixpdfname=="":    
+#    postfixpdfname = tkFileDialog.askopenfilename(title="Please select PDF file you want post-pended to every exam. (Cancel if none.)")
 
 
 #################### 
@@ -155,10 +169,10 @@ idfile = open(rosterfilename);
 idreader = csv.reader(idfile,delimiter='\t')
 idreader.next(); #skip first line
 for row in idreader:
-    print "roster = ", row;
+    print "roster = ", row
     firstname = row[0]
     lastname = row[1]
-    email = row[3]
+    email = row[2]
     emaildb[email] = lastname + ", " + firstname;
 emaildb['missing'] = "unregistered"
     
@@ -170,11 +184,15 @@ emaildb['missing'] = "unregistered"
 # (c) accumulate a list of question-IDs to help find the question images later.
 
 qfiles = {}
+correctanswersbyq = {}
 
 files = [ f for f in listdir(mypath+"SessionData/") if ( isfile(mypath+"SessionData/"+f) and "L" in f and "csv" in f)]
 # begin loop through list of files!   
 for f in files:
     print(f)
+    if (getsize(mypath+"SessionData/"+f)==0):
+        continue
+
     csvfile = open(mypath+"SessionData/"+f,'rU')
     thisfile = csv.reader(csvfile)
     i=0;
@@ -198,10 +216,17 @@ for f in files:
         # if image file does not exist, kill question by replacing answer with Z
         print thisqimage;
         qfiles[qkey[i]] = thisqimage;
+        correctanswersbyq[qkey[i]] = correctanswer[i]
         if not (isfile(thisqimage)):
             print "killit"
             correctanswer[i] = "Z"
-
+        if (correctanswer[i] == ''): # iGrader uses "blank answer" to delete Qs
+            correctanswer[i] = "Z"
+        if (correctanswer[i] == ""): # iGrader uses "blank answer" to delete Qs
+            correctanswer[i] = "Z"
+        if not ('A' in correctanswer[i] or 'B' in correctanswer[i] or 'C' in correctanswer[i] or 'D' in correctanswer[i] or 'E' in correctanswer[i]):
+            correctanswer[i] = "Z"
+            
     print correctanswer    
     # OK, now I know the number of questions and the correct answers.  Time to go through the remaining rows and populate the "student answers" database.
     for row in thisfile:
@@ -218,6 +243,8 @@ for f in files:
             thisanswer = row[3+6*i]
             # edge case processing
             result = False
+            if (IgnoreSkippedQuestions and thisanswer==""):
+                result = True
             if (correctanswer[i] == "" and thisanswer==""):
                 result = True
             elif (thisanswer!="" and thisanswer in correctanswer[i]):
@@ -229,7 +256,7 @@ for f in files:
             if ('Z' in correctanswer[i]): # skip the database entry if "answer Z" indicates a problem with the question or a desire not to use it in exam 
                 continue;
 
-            thisstudentrecord[qkey[i]] = result; # add new q-records to student 
+            thisstudentrecord[qkey[i]] = result; # add new q-records to student
         students[thisstudent] = thisstudentrecord # refile whole set of student q-records with student 
     csvfile.close();
 
@@ -247,21 +274,22 @@ print "preparing to crop"
 listofquestions = qfiles.keys();
 for thisqkey in listofquestions:
     thisfile = qfiles[thisqkey]
-    print "cropping",thisfile,thisqkey
+    print "cropping",thisfile,thisqkey," with instructions ",fullscreen,cropleft
     im = Image.open(thisfile)
-
+    
     # DECIDE ON THE CROPPING HERE                               
-    if (fullscreen and not cropleft): 
-         im = im.crop([1,1,1024,768])
+    if (fullscreen and not cropleft):         
+        im = im.crop([1,1,1024,768])
     elif (fullscreen and cropleft):
-         im = im.crop([1,1,512,768])
+        im = im.crop([1,1,512,768])
     elif (not fullscreen and not cropleft):
-         im = im.crop([45,125,535,572])
-    elif (not fullscreen and cropleft):              
-         im = im.crop([45,125,290,550])
+        im = im.crop([45,125,535,572])
+    elif (not fullscreen and cropleft):                   
+        print "cropping properly now dammit"
+        im = im.crop([45,125,290,550])
 
     # generate a new filename to save the crop
-    newfilename = "Exams/"+thisqkey+"_crop.jpg";
+    newfilename = examsdir+"/"+thisqkey+"_crop.jpg";
     im.save(newfilename,"JPEG")
     #replace old qkey filename with this filename
     qfiles[thisqkey] = newfilename
@@ -280,6 +308,9 @@ except:
     postfixpages = ""
 
 
+# Prepare a file for hte answer key
+answerkeyfile = open(examsdir+"/answers.csv","w")
+    
 listofstudents = students.keys();
     
 istudent = 0
@@ -292,10 +323,11 @@ for individual in listofstudents:
     thisemail = studentids[individual]
     thisname = emaildb[thisemail]
     thisnameforfile = thisname.replace(',','_').replace(' ','_').replace('__','_')
-    outputpdfname = "Exams/exam"+thisnameforfile+".pdf"
+    outputpdfname = examsdir+"/exam"+thisnameforfile+".pdf"
     c = canvas.Canvas(outputpdfname+"tmp",pagesize=letter)
     c.drawString(1*inch,10.55*inch,thisname)
     c.drawString(1*inch,10.35*inch,thisemail)
+    c.drawString(1*inch,10.15*inch,"CIRCLE ANSWERS ON THIS SHEET AND HAND IT IN")
     # get list of student's wrong answers
     thisquestionlist = thisrecord.keys()
     wrongslist = []
@@ -363,6 +395,18 @@ for individual in listofstudents:
             elif (iquadrant==1):
                 imy = 5.25*inch; 
                 imx = 4.5*inch;
+            elif (iquadrant==2):
+                imy = 0.5*inch; 
+                imx = 1*inch;
+            elif (iquadrant==3):
+                imy = 0.5*inch; 
+                imx = 4.5*inch;
+
+
+
+
+
+                
         elif (not fullscreen and cropleft):              
             xwid=2.5*inch
             ywid=5*inch
@@ -384,7 +428,7 @@ for individual in listofstudents:
         
         #FIXME.   need to implement the user-choice of grid.
         iquadrant+=1
-        if (iquadrant > 1):
+        if (iquadrant > 3):
             c.showPage()
             iquadrant=0
                 
@@ -410,9 +454,18 @@ for individual in listofstudents:
     outputStream.close()
     remove(outputpdfname+"tmp")
 
+### debugging log 
+    print "QASSIGNED: ", thisname, thisemail, examset
 
+#### and record this student's correct answers in a csv file for later use      
 
-
+    answerkeyfile.write(thisname, ",", thisemail,",")
+    for thisquestion in examset:
+        answerkeyfile.write(correctanswersbyq[thisquestion],",")
+    for thisquestion in examset:
+        answerkeyfile.write(thisquestion,",")
+            
 ################
-# 
+#  clean up and finish
 ################
+answerkeyfile.close()
