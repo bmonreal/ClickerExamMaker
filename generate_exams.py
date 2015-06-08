@@ -106,9 +106,9 @@ for opt, arg in opts:
     elif opt in ("-k"):
         cropleft = True
 
-mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/"
-examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys21w15/"
-rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/MoodleRoster.txt"
+mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/"
+examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys22s15"
+rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/MoodleRoster.txt"
 #postfixpdfname = "/Users/bmonreal/teaching/phys21w14/final_exam.pdf"
 postfixpdfname = ""
 prefixpdfname=""
@@ -218,16 +218,19 @@ for f in files:
         qfiles[qkey[i]] = thisqimage;
         correctanswersbyq[qkey[i]] = correctanswer[i]
         if not (isfile(thisqimage)):
-            print "killit"
+            print "killit, no file"
             correctanswer[i] = "Z"
         if (correctanswer[i] == ''): # iGrader uses "blank answer" to delete Qs
+            print "killit, answer blank single quotes"
             correctanswer[i] = "Z"
         if (correctanswer[i] == ""): # iGrader uses "blank answer" to delete Qs
+            print "killit, answer blank double quotes"
             correctanswer[i] = "Z"
         if not ('A' in correctanswer[i] or 'B' in correctanswer[i] or 'C' in correctanswer[i] or 'D' in correctanswer[i] or 'E' in correctanswer[i]):
+            print "killit, answer not in set ABCDE"
             correctanswer[i] = "Z"
             
-    print correctanswer    
+    print "correct answers today are ", correctanswer    
     # OK, now I know the number of questions and the correct answers.  Time to go through the remaining rows and populate the "student answers" database.
     for row in thisfile:
         # see if this student clicker is in the dictionary already
@@ -459,11 +462,12 @@ for individual in listofstudents:
 
 #### and record this student's correct answers in a csv file for later use      
 
-    answerkeyfile.write(thisname, ",", thisemail,",")
+    answerkeyfile.write(thisname+ ","+ thisemail+",")
     for thisquestion in examset:
-        answerkeyfile.write(correctanswersbyq[thisquestion],",")
+        answerkeyfile.write(correctanswersbyq[thisquestion]+",")
     for thisquestion in examset:
-        answerkeyfile.write(thisquestion,",")
+        answerkeyfile.write(thisquestion+",")
+    answerkeyfile.write("\n")    
             
 ################
 #  clean up and finish

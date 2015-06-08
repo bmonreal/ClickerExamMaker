@@ -104,10 +104,10 @@ for opt, arg in opts:
     elif opt in ("-k"):
         cropleft = True
 
-mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/"
-examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys21w15/"
-rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 21 W 2015/MoodleRoster.txt"
-postfixpdfname = "/Users/bmonreal/teaching/phys21w14/final_exam.pdf"
+mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/"
+examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys22s15/"
+rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/MoodleRoster.txt"
+postfixpdfname = "/Users/bmonreal/teaching/phys22w15/final_exam.pdf"
 print "hack line select "+mypath+" "+examsdir
 
 
