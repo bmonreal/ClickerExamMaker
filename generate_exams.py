@@ -63,8 +63,8 @@ examsdir=""
 prefixpdfname=""
 postfixpdfname=""
 rosterfilename=""
-nneeded = 4
-layout = [2,2] 
+nneeded = 6
+layout = [2,3] 
 fullscreen = False
 cropleft = False
 IgnoreSkippedQuestions = True
@@ -286,7 +286,8 @@ for thisqkey in listofquestions:
     elif (fullscreen and cropleft):
         im = im.crop([1,1,512,768])
     elif (not fullscreen and not cropleft):
-        im = im.crop([45,125,535,572])
+#        im = im.crop([45,125,535,572])
+        im = im.crop([104,159,472,480])
     elif (not fullscreen and cropleft):                   
         print "cropping properly now dammit"
         im = im.crop([45,125,290,550])
@@ -328,9 +329,8 @@ for individual in listofstudents:
     thisnameforfile = thisname.replace(',','_').replace(' ','_').replace('__','_')
     outputpdfname = examsdir+"/exam"+thisnameforfile+".pdf"
     c = canvas.Canvas(outputpdfname+"tmp",pagesize=letter)
-    c.drawString(1*inch,10.55*inch,thisname)
-    c.drawString(1*inch,10.35*inch,thisemail)
-    c.drawString(1*inch,10.15*inch,"CIRCLE ANSWERS ON THIS SHEET AND HAND IT IN")
+    c.drawString(1*inch,10.55*inch,thisname+" "+thisemail)
+    c.drawString(1*inch,10.35*inch,"ANSWERS MUST BE IN BLUE BOOK")
     # get list of student's wrong answers
     thisquestionlist = thisrecord.keys()
     wrongslist = []
@@ -371,54 +371,56 @@ for individual in listofstudents:
         # decide where to put resulting image and how big to make it.  
         # FIXME.  This is a terrible hack and can be improved.   
         #FIXME.  Also need to implement the user-choice of grid.
-        if (fullscreen and not cropleft): 
-            xwid=4*inch
-            ywid=4*inch
-            if (iquadrant==0):
-                imy = 5.25*inch; 
-                imx = 1*inch;
-            elif (iquadrant==1):
-                imy = 5.25*inch; 
-                imx = 4.5*inch;
-        elif (fullscreen and cropleft):
-            xwid=2.5*inch
-            ywid=5*inch
-            if (iquadrant==0):
-                imy = 5.25*inch; 
-                imx = 1*inch;
-            elif (iquadrant==1):
-                imy = 5.25*inch; 
-                imx = 4.5*inch;
-        elif (not fullscreen and not cropleft):
-            xwid=4*inch
-            ywid=4*inch
-            if (iquadrant==0):
-                imy = 5.25*inch; 
-                imx = 1*inch;
-            elif (iquadrant==1):
-                imy = 5.25*inch; 
-                imx = 4.5*inch;
-            elif (iquadrant==2):
-                imy = 0.5*inch; 
-                imx = 1*inch;
-            elif (iquadrant==3):
-                imy = 0.5*inch; 
-                imx = 4.5*inch;
 
-
-
-
-
-                
-        elif (not fullscreen and cropleft):              
-            xwid=2.5*inch
-            ywid=5*inch
-            if (iquadrant==0):
-                imy = 5.25*inch; 
-                imx = 1*inch;
-            elif (iquadrant==1):
-                imy = 5.25*inch; 
-                imx = 4.5*inch;
+        xwid = 8.0*inch/layout[0]
+        ywid = 10.0*inch/layout[1]
+        icol = iquadrant%layout[0]
+        irow = iquadrant/layout[0]
+        imx = 0.5*inch+(icol)*xwid
+        imy = (layout[1]-irow-1)*ywid
+        
+        ## if (fullscreen and not cropleft): 
+        ##     xwid=4*inch
+        ##     ywid=4*inch
+        ##     if (iquadrant==0):
+        ##         imy = 5.25*inch; 
+        ##         imx = 1*inch;
+        ##     elif (iquadrant==1):
+        ##         imy = 5.25*inch; 
+        ##         imx = 4.5*inch;
+        ## elif (fullscreen and cropleft):
+        ##     xwid=2.5*inch
+        ##     ywid=5*inch
+        ##     if (iquadrant==0):
+        ##         imy = 5.25*inch; 
+        ##         imx = 1*inch;
+        ##     elif (iquadrant==1):
+        ##         imy = 5.25*inch; 
+        ##         imx = 4.5*inch;
+        ## elif (not fullscreen and not cropleft):
+        ##     xwid=4*inch
+        ##     ywid=4*inch
+        ##     if (iquadrant==0):
+        ##         imy = 5.25*inch; 
+        ##         imx = 1*inch;
+        ##     elif (iquadrant==1):
+        ##         imy = 5.25*inch; 
+        ##         imx = 4.5*inch;
+        ##     elif (iquadrant==2):
+        ##         imy = 0.5*inch; 
+        ##         imx = 1*inch;
+        ##     elif (iquadrant==3):
+        ##         imy = 0.5*inch; 
+        ##         imx = 4.5*inch;               
+        ## elif (not fullscreen and cropleft):              
+        ##     xwid=2.5*inch
+        ##     ywid=5*inch
+        ##     if (iquadrant==0):
+        ##         imy = 5.25*inch; 
+        ##         imx = 1*inch;
+        ##     elif (iquadrant==1):
+        ##         imy = 5.25*inch; 
+        ##         imx = 4.5*inch;
 
 
 
@@ -428,10 +430,12 @@ for individual in listofstudents:
         print len(examset), thisquestion, screenshotfile
         im = ImageReader(screenshotfile)
         c.drawImage(im,imx,imy,width=xwid,height=ywid)
+        c.drawString(imx,imy+ywid-0.25*inch,"Q1."+str(iquadrant))
+        
         
         #FIXME.   need to implement the user-choice of grid.
         iquadrant+=1
-        if (iquadrant > 3):
+        if (iquadrant > layout[0]*layout[1]-1):
             c.showPage()
             iquadrant=0
                 
