@@ -14,7 +14,7 @@ import random
 import getopt
 
 
-
+from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.units import inch
@@ -63,7 +63,7 @@ examsdir=""
 prefixpdfname=""
 postfixpdfname=""
 rosterfilename=""
-nneeded = 6
+#nneeded = 6 # this is now set in the user-specific part above
 layout = [2,3] 
 fullscreen = False
 cropleft = False
@@ -106,9 +106,18 @@ for opt, arg in opts:
     elif opt in ("-k"):
         cropleft = True
 
-mypath = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/"
-examsdir = "/Users/bmonreal/software/ClickerExamMaker/Finals_phys22s15"
-rosterfilename = "/Users/bmonreal/Desktop/iclicker Mac v6.4.0/Classes/Physics 22 S 15/MoodleRoster.txt"
+whoseclass = "BM"
+if (whoseclass=="JC"):
+    mypath = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Physics 20 Fall 2015/"
+    examsdir = "/Users/bmonreal/software/ClickerExamMaker/Midterms_phys20f15jc/"
+    rosterfilename = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Physics 20 Fall 2015/MoodleRoster.txt"
+    nneeded = 5
+if (whoseclass=="BM"):
+    mypath = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Phys20F15_Monreal/"
+    examsdir = "/Users/bmonreal/software/ClickerExamMaker/Midterms_phys20f15bm/"
+    rosterfilename = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Phys20F15_Monreal/MoodleRoster.txt"
+    nneeded=6
+
 #postfixpdfname = "/Users/bmonreal/teaching/phys21w14/final_exam.pdf"
 postfixpdfname = ""
 prefixpdfname=""
@@ -126,7 +135,7 @@ print "hack line select "+mypath+" "+examsdir
 # FIXME: I don't know how to implement these radio buttons.  
 #    fullscreen = userinput[3];
 #    cropleft = userinput[4];
-fullscreen = False
+fullscreen = True
 cropleft = False
 
 # All of the filenames are required; prompt for anything missing.
@@ -154,7 +163,7 @@ if rosterfilename=="":
 # Step 1.   The "RemoteID.csv" file helps create a map from clickerIDs to emails
 # and the "moodleroster.txt" (exported from iGrader) maps from emails to names. #  Not the best system but we can handle it.  
 
-idfile = open(mypath+"/SessionData/RemoteID.csv");
+idfile = open(mypath+"/SessionData/RemoteID.csv",'rU');
 idreader = csv.reader(idfile)
 students = {}
 studentids = {}
@@ -186,7 +195,7 @@ emaildb['missing'] = "unregistered"
 qfiles = {}
 correctanswersbyq = {}
 
-files = [ f for f in listdir(mypath+"SessionData/") if ( isfile(mypath+"SessionData/"+f) and "L" in f and "csv" in f)]
+files = [ f for f in listdir(mypath+"SessionData/") if ( isfile(mypath+"SessionData/"+f) and "L" in f and "csv" in f and f[0] != 'x')]
 # begin loop through list of files!   
 for f in files:
     print(f)
@@ -329,8 +338,14 @@ for individual in listofstudents:
     thisnameforfile = thisname.replace(',','_').replace(' ','_').replace('__','_')
     outputpdfname = examsdir+"/exam"+thisnameforfile+".pdf"
     c = canvas.Canvas(outputpdfname+"tmp",pagesize=letter)
-    c.drawString(1*inch,10.55*inch,thisname+" "+thisemail)
-    c.drawString(1*inch,10.35*inch,"ANSWERS MUST BE IN BLUE BOOK")
+    c.setFillColor(colors.black)
+# do we need a trick to get opaque bg under text?
+#    t=c.beginText(-1,-1) 
+#    t.setTextRenderMode(6)
+#    c.drawText(t)
+
+    c.drawString(1*inch,10.55*inch,thisname+" "+thisemail,0)
+#    c.drawString(1*inch,10.35*inch,"ANSWERS MUST BE IN BLUE BOOK")
     # get list of student's wrong answers
     thisquestionlist = thisrecord.keys()
     wrongslist = []
@@ -430,7 +445,7 @@ for individual in listofstudents:
         print len(examset), thisquestion, screenshotfile
         im = ImageReader(screenshotfile)
         c.drawImage(im,imx,imy,width=xwid,height=ywid)
-        c.drawString(imx,imy+ywid-0.25*inch,"Q1."+str(iquadrant))
+        c.drawString(imx,imy+ywid-0.25*inch,"Q1."+str(iquadrant+11),2)
         
         
         #FIXME.   need to implement the user-choice of grid.
