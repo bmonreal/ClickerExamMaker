@@ -68,11 +68,10 @@ layout = [2,3]
 fullscreen = False
 cropleft = False
 IgnoreSkippedQuestions = True
-
+nameonbackpage = True
+        
 root = Tk()
 root.update()
-
-
 
 #########################################
 ##### get user input ####################
@@ -106,24 +105,43 @@ for opt, arg in opts:
     elif opt in ("-k"):
         cropleft = True
 
-whoseclass = "BM"
+whoseclass = "JC"
 if (whoseclass=="JC"):
+
     mypath = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Physics 20 Fall 2015/"
     examsdir = "/Users/bmonreal/software/ClickerExamMaker/Midterms_phys20f15jc/"
     rosterfilename = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Physics 20 Fall 2015/MoodleRoster.txt"
     nneeded = 5
+    firstnumber = 11
 if (whoseclass=="BM"):
     mypath = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Phys20F15_Monreal/"
     examsdir = "/Users/bmonreal/software/ClickerExamMaker/Midterms_phys20f15bm/"
     rosterfilename = "/Users/bmonreal/Desktop/iclicker_Mac_v6.4.2_ucsbintegration_2014-10-24/Classes/Phys20F15_Monreal/MoodleRoster.txt"
     nneeded=6
-
+    firstnumber = 1
 #postfixpdfname = "/Users/bmonreal/teaching/phys21w14/final_exam.pdf"
 postfixpdfname = ""
 prefixpdfname=""
 print "hack line select "+mypath+" "+examsdir
 
+# hand-coded arrays that generate the list of seats in this classroom.  
+whichclassroom = "1640"
+listofseats = []
+alternatingseats = []
+if (whichclassroom=="1640"):
+    listofseats += ["J"+str(x) for x in range(104,110+1)] #short row
+    listofseats += ["H"+str(x) for x in range(105,110+1)] #short row
+    for rowletter in ["G","F","E","D","C"]:
+        listofseats += [rowletter+str(x) for x in range(101,111+1)] # five uniform rows
+    listofseats += ["B"+str(x) for x in range(101,110+1)]  # one seat short in row B
+    listofseats += ["A101"] # front rows are half broke, only use a few
+    listofseats += ["A102"]
+    listofseats += ["A110"]
+alternatingseats += ['A' if pow(-1,i)==1 else "B" for i in range(len(listofseats))]
 
+print "seat list length ", len(listofseats)
+print "seat alt length ", len(alternatingseats)
+print listofseats
 
 # if there were NO command line arguments, we have to prompt for the number and layout of the questions.          
 #if len(opts) == 0 :
@@ -168,9 +186,10 @@ idreader = csv.reader(idfile)
 students = {}
 studentids = {}
 for row in idreader:
-    students[row[0]] = {}
-    studentids[row[0]] = row[1]  #key is clicker-ID, value is email
-    print row[0], row[1]
+    if len(row[0])==9: # check for a common invalid-clicker-ID error
+        students[row[0]] = {}
+        studentids[row[0]] = row[1]  #key is clicker-ID, value is email
+        print row[0], row[1]
 idfile.close();
 
 emaildb = {}
@@ -183,8 +202,8 @@ for row in idreader:
     lastname = row[1]
     email = row[2]
     emaildb[email] = lastname + ", " + firstname;
-emaildb['missing'] = "unregistered"
-    
+emaildb['missing'] = "unregistered, unregistered"
+
 
 ################ Read all clicker/class session information #############
 # the goal of this read is to 
@@ -244,6 +263,8 @@ for f in files:
     for row in thisfile:
         # see if this student clicker is in the dictionary already
         thisstudent = row[0]
+        if thisstudent[0] != '#': # test whether this row of the database looks like a clicker ID. Ugly HACK HACK.
+            continue
         if thisstudent not in students:
             print "new student", thisstudent, row
             students[thisstudent] = {}
@@ -324,10 +345,12 @@ except:
 # Prepare a file for hte answer key
 answerkeyfile = open(examsdir+"/answers.csv","w")
     
-listofstudents = students.keys();
+listofstudents = students.keys(); # NOTE if we use students.keys for roster, we get only Moodle-registered students.
+# it is possible for people to appear in RosterID.csv who are not Moodle registered, I think.
     
 istudent = 0
-    
+print "student list length ",len(listofstudents)
+print listofstudents
 
 for individual in listofstudents:
     istudent += 1
@@ -338,13 +361,19 @@ for individual in listofstudents:
     thisnameforfile = thisname.replace(',','_').replace(' ','_').replace('__','_')
     outputpdfname = examsdir+"/exam"+thisnameforfile+".pdf"
     c = canvas.Canvas(outputpdfname+"tmp",pagesize=letter)
+######
+# generate a cover page with a seat assignment 
+#    seatassignment, seatstyle = (listofseats[istudent-1], alternatingseats[istudent-1]) # DOESN'T WORK 
+    
     c.setFillColor(colors.black)
 # do we need a trick to get opaque bg under text?
 #    t=c.beginText(-1,-1) 
 #    t.setTextRenderMode(6)
 #    c.drawText(t)
 
-    c.drawString(1*inch,10.55*inch,thisname+" "+thisemail,0)
+    c.drawString(1*inch,10.25*inch,thisname+"              "+thisemail,0)
+#    c.drawString(7*inch,10.55*inch,"EXAM VERSION "+seatstyle,0)
+#     c.drawString(1*inch,10.55*inch,thisname+" "+thisemail+"     SEAT "+seatassignment+"   EXAM VERSION"+seatstyle,0)
 #    c.drawString(1*inch,10.35*inch,"ANSWERS MUST BE IN BLUE BOOK")
     # get list of student's wrong answers
     thisquestionlist = thisrecord.keys()
@@ -357,6 +386,7 @@ for individual in listofstudents:
     # different behavior needed depending on number of mistakes. 
     if len(thisquestionlist) < nneeded : # mostly-absent student
         print "student ", individual, studentids[individual], " didn't see enough Q for exam"
+        continue # JUST A DEBUGGING EXPERIMENT maybe this discards the multi-clicker overwrite oddity?  If we bail out of exam generation for an absent student we won't overwrite a "good" exam with a blank one.
     elif len(wrongslist) >= nneeded  : # lots of wrong answers?  Pick N.
         examset = random.sample(wrongslist,nneeded)
     elif len(wrongslist) == nneeded : # exactly N? use all of them.
@@ -387,12 +417,14 @@ for individual in listofstudents:
         # FIXME.  This is a terrible hack and can be improved.   
         #FIXME.  Also need to implement the user-choice of grid.
 
-        xwid = 8.0*inch/layout[0]
-        ywid = 10.0*inch/layout[1]
+        xwid = 7.5*inch/layout[0]
+        ywid = 9.5*inch/layout[1]
         icol = iquadrant%layout[0]
         irow = iquadrant/layout[0]
         imx = 0.5*inch+(icol)*xwid
-        imy = (layout[1]-irow-1)*ywid
+        imy = 0.5*inch + (layout[1]-irow-1)*ywid
+        xwid = 0.95*xwid
+        ywid = 0.95*ywid
         
         ## if (fullscreen and not cropleft): 
         ##     xwid=4*inch
@@ -445,7 +477,12 @@ for individual in listofstudents:
         print len(examset), thisquestion, screenshotfile
         im = ImageReader(screenshotfile)
         c.drawImage(im,imx,imy,width=xwid,height=ywid)
-        c.drawString(imx,imy+ywid-0.25*inch,"Q1."+str(iquadrant+11),2)
+        c.setFillColorRGB(1,1,1)
+        c.setStrokeColorRGB(1,1,1)
+        c.rect(imx-0.05,imy+ywid-0.25*inch-0.05,0.5*inch,0.3*inch, fill=1)
+        c.setStrokeColorRGB(0,0,0)
+        c.drawString(imx,imy+ywid-0.25*inch,"Q1."+str(iquadrant+firstnumber),2)
+
         
         
         #FIXME.   need to implement the user-choice of grid.
@@ -455,6 +492,12 @@ for individual in listofstudents:
             iquadrant=0
                 
 
+    if nameonbackpage:
+        if (nneeded%(layout[0]*layout[1]) != 0):
+            c.showPage()
+        c.drawString(1*inch,10.25*inch,thisname+"              "+thisemail,0)
+
+            
     c.save()
 
 ### Finally, use pyPDF to add the "common" pages to this file.  Need to reopen.
